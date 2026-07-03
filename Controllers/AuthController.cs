@@ -88,6 +88,9 @@ public class AuthController : ControllerBase
         if (user.Id == currentUserId)
             return BadRequest(new { message = "Cannot delete your own account." });
 
+        if (user.Role == "admin")
+            return BadRequest(new { message = "Cannot delete an admin user." });
+
         _db.Users.Remove(user);
         await _db.SaveChangesAsync();
         return Ok(new { message = $"User '{user.Username}' deleted." });
