@@ -1,0 +1,99 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <title>Kiosk Display</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.0/signalr.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            background: black;
+            overflow: hidden;
+        }
+
+
+
+        .media {
+            filter: blur(10px);
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            transition: all .8s ease;
+        }
+
+            .media.show {
+                filter: blur(0);
+                opacity: 1;
+            }
+
+            .media.hide {
+                opacity: 0;
+            }
+    </style>
+</head>
+<body>
+
+    <div id="screen"></div>
+
+    <script>
+const connection = new signalR.HubConnectionBuilder()
+    .withUrl("/mediaHub")
+    .build();
+
+        connection.on("ReceiveMedia", media => {
+
+            const screen = document.getElementById("screen");
+
+            let element;
+
+            if (media.fileType === "image") {
+                element = document.createElement("img");
+            } else {
+                element = document.createElement("video");
+                element.autoplay = true;
+                element.loop = true;
+                element.muted = true;
+                element.playsInline = true;
+            }
+
+            element.src = media.fileUrl;
+            element.className = "media";
+
+            screen.appendChild(element);
+
+            // Wait until media is ready
+            const showMedia = () => {
+
+                const current = screen.querySelector(".media.show");
+
+                if (current) {
+                    current.classList.remove("show");
+                    current.classList.add("hide");
+
+                    current.addEventListener("transitionend", () => {
+                        current.remove();
+                    }, { once: true });
+                }
+
+                requestAnimationFrame(() => {
+                    element.classList.add("show");
+                });
+            };
+
+            if (media.fileType === "image") {
+                element.onload = showMedia;
+            } else {
+                element.oncanplay = showMedia;
+            }
+
+        });
+
+        connection.start()
+            .then(() => console.log("Connected"))
+            .catch(err => {
+                console.error("SignalR error:", err);
+                setTimeout(() => connection.start(), 3000);
+            });
+    </script>
+
+</body>
+</html>
